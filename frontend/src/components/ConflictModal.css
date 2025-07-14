@@ -1,0 +1,369 @@
+.conflict-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.conflict-modal {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 16px;
+  padding: 0;
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.conflict-modal-header {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.conflict-modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.5em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5em;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.conflict-message {
+  padding: 20px;
+  color: white;
+  background: rgba(255, 165, 0, 0.1);
+  border-left: 4px solid #ffa500;
+  margin: 20px;
+  border-radius: 8px;
+}
+
+.conflict-versions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 0 20px;
+}
+
+.version-section h3 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 1.2em;
+}
+
+.version-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 15px;
+  backdrop-filter: blur(5px);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.your-version {
+  border-color: #28a745;
+}
+
+.current-version {
+  border-color: #007bff;
+}
+
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.version-label {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.version-time {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9em;
+}
+
+.version-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+.field span {
+  color: white;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.priority-badge {
+  padding: 4px 12px !important;
+  border-radius: 20px !important;
+  font-size: 0.8em !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  display: inline-block !important;
+  width: fit-content !important;
+}
+
+.priority-badge.Low {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+.priority-badge.Medium {
+  background: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.priority-badge.High {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+.status-badge {
+  padding: 4px 12px !important;
+  border-radius: 20px !important;
+  font-size: 0.8em !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+  width: fit-content !important;
+}
+
+.status-badge.todo {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.status-badge.in-progress {
+  background: #007bff !important;
+  color: white !important;
+}
+
+.status-badge.done {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+.conflict-actions {
+  padding: 20px;
+}
+
+.action-section h3 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+}
+
+.merge-btn {
+  background: #17a2b8;
+  color: white;
+}
+
+.merge-btn:hover {
+  background: #138496;
+  transform: translateY(-2px);
+}
+
+.overwrite-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid transparent;
+}
+
+.overwrite-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.overwrite-btn.selected {
+  background: #28a745;
+  border-color: #20c997;
+}
+
+.merge-editor {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.merge-editor h4 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.merge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.merge-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.merge-field label {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.merge-field input,
+.merge-field textarea,
+.merge-field select {
+  padding: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1em;
+}
+
+.merge-field input:focus,
+.merge-field textarea:focus,
+.merge-field select:focus {
+  outline: none;
+  border-color: #007bff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.conflict-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.confirm-btn {
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.confirm-btn:hover {
+  background: #218838;
+}
+
+.footer-message {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .conflict-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .conflict-versions {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .footer-actions {
+    flex-direction: column;
+  }
+}

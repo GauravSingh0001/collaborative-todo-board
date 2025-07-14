@@ -1,0 +1,31 @@
+.smart-assign-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.smart-assign-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.smart-assign-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smart-assign-btn .loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
