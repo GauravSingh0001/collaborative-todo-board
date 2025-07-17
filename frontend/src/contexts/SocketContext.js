@@ -16,112 +16,80 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState([]);
-  const [typingUsers, setTypingUsers] = useState({});
-  const { user, isAuthenticated } = useAuth();
+  const [connectionError, setConnectionError] = useState(null);
+  const { token, user } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const newSocket = io(process.env.REACT_APP_SERVER_URL || 'http://localhost:5000', {
-        auth: {
-          token: localStorage.getItem('token')
-        }
-      });
-
-      newSocket.on('connect', () => {
-        console.log('Connected to server');
-        setIsConnected(true);
-      });
-
-      newSocket.on('disconnect', () => {
-        console.log('Disconnected from server');
-        setIsConnected(false);
-      });
-
-      newSocket.on('user_status_update', (data) => {
-        setOnlineUsers(data.connectedUsers || []);
-      });
-
-      newSocket.on('user_typing', (data) => {
-        setTypingUsers(prev => {
-          const updated = { ...prev };
-          if (data.isTyping) {
-            updated[data.taskId] = updated[data.taskId] || [];
-            if (!updated[data.taskId].find(u => u.userId === data.userId)) {
-              updated[data.taskId].push({
-                userId: data.userId,
-                userName: data.userName
-              });
-            }
-          } else {
-            if (updated[data.taskId]) {
-              updated[data.taskId] = updated[data.taskId].filter(u => u.userId !== data.userId);
-              if (updated[data.taskId].length === 0) {
-                delete updated[data.taskId];
-              }
-            }
-          }
-          return updated;
-        });
-      });
-
-      newSocket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
-        setIsConnected(false);
-      });
-
-      setSocket(newSocket);
-
-      return () => {
-        newSocket.disconnect();
-      };
-    } else {
+    if (!token || !user) {
+      // Disconnect if no token
       if (socket) {
         socket.disconnect();
         setSocket(null);
         setIsConnected(false);
-        setOnlineUsers([]);
-        setTypingUsers({});
       }
+      return;
     }
-  }, [isAuthenticated, user]);
 
-  const emit = (event, data) => {
-    if (socket && isConnected) {
-      socket.emit(event, data);
-    }
-  };
+    // Create socket connection with proper authentication
+    const newSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+      auth: {
+        token: token
+      },
+      query: {
+        token: token
+      },
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
+    });
 
-  const on = (event, callback) => {
-    if (socket) {
-      socket.on(event, callback);
-    }
-  };
+    // Connection event handlers
+    newSocket.on('connect', () => {
+      console.log('✅ Socket connected:', newSocket.id);
+      setIsConnected(true);
+      setConnectionError(null);
+      
+      // Join user room
+      newSocket.emit('join_room', user.userId);
+    });
 
-  const off = (event, callback) => {
-    if (socket) {
-      socket.off(event, callback);
-    }
-  };
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+      setConnectionError(error.message);
+      setIsConnected(false);
+    });
 
-  const startTyping = (taskId) => {
-    emit('typing_start', { taskId });
-  };
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
+      setIsConnected(false);
+    });
 
-  const stopTyping = (taskId) => {
-    emit('typing_stop', { taskId });
-  };
+    // Reconnection handlers
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+      setIsConnected(true);
+      setConnectionError(null);
+    });
+
+    newSocket.on('reconnect_error', (error) => {
+      console.error('❌ Socket reconnection error:', error);
+      setConnectionError(error.message);
+    });
+
+    setSocket(newSocket);
+
+    // Cleanup on unmount
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
+      }
+    };
+  }, [token, user]);
 
   const value = {
     socket,
     isConnected,
-    onlineUsers,
-    typingUsers,
-    emit,
-    on,
-    off,
-    startTyping,
-    stopTyping
+    connectionError
   };
 
   return (
@@ -129,4 +97,27 @@ export const SocketProvider = ({ children }) => {
       {children}
     </SocketContext.Provider>
   );
+};
+
+// Custom hook for task-related socket events
+export const useTaskSocket = () => {
+  const { socket } = useSocket();
+  
+  const emitTaskEvent = (eventName, data) => {
+    if (socket && socket.connected) {
+      socket.emit(eventName, data);
+    }
+  };
+
+  const onTaskEvent = (eventName, callback) => {
+    if (socket) {
+      socket.on(eventName, callback);
+      return () => socket.off(eventName, callback);
+    }
+  };
+
+  return {
+    emitTaskEvent,
+    onTaskEvent
+  };
 };
