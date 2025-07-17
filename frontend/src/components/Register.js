@@ -19,37 +19,59 @@ const Register = ({ onLogin, switchToLogin }) => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  const validateForm = () => {
+    // Check all fields are filled
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.confirmPassword.trim()) {
+      setError('Please fill in all fields');
+      return false;
+    }
 
-    // Debug: Log form data
-    console.log('Form data state:', formData);
-    
+    // Validate name length
+    if (formData.name.trim().length < 3) {
+      setError('Name must be at least 3 characters long');
+      return false;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
-    // Validate all fields are filled
-    if (!formData.name || !formData.email || !formData.password) {
-      setError('Please provide all required fields');
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
+    setError('');
 
     // Prepare the data to send
     const registrationData = {
-      name: formData.name,
-      email: formData.email,
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
       password: formData.password
     };
 
-    console.log('Sending registration data:', registrationData);
-    console.log('JSON stringified:', JSON.stringify(registrationData));
+    console.log('Attempting registration for:', registrationData.email);
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -60,22 +82,43 @@ const Register = ({ onLogin, switchToLogin }) => {
         body: JSON.stringify(registrationData)
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log('Registration response status:', response.status);
+      
+      // Always try to parse the response as JSON
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError);
+        throw new Error('Invalid server response');
+      }
 
-      const data = await response.json();
-      console.log('Response data:', data);
+      console.log('Registration response data:', data);
 
       if (response.ok) {
+        // Clear any existing data first
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Store new user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        
+        console.log('Registration successful, logging in user:', data.user);
         onLogin(data.user, data.token);
       } else {
-        setError(data.error || 'Registration failed');
+        // Handle specific error cases
+        if (response.status === 400) {
+          setError(data.error || 'Registration failed - please check your information');
+        } else if (response.status === 500) {
+          setError('Server error - please try again later');
+        } else {
+          setError(data.error || 'Registration failed');
+        }
       }
     } catch (error) {
-      console.error('Network error:', error);
-      setError('Network error. Please try again.');
+      console.error('Registration network error:', error);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +144,7 @@ const Register = ({ onLogin, switchToLogin }) => {
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="Choose a username"
+              placeholder="Enter your full name"
               minLength={3}
             />
           </div>
@@ -128,7 +171,7 @@ const Register = ({ onLogin, switchToLogin }) => {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Create a password"
+              placeholder="Create a password (min 6 characters)"
               minLength={6}
             />
           </div>

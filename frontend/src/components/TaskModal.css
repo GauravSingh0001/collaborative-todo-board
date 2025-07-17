@@ -1,28 +1,26 @@
+/* TaskModal.css */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(3px);
-  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 0;
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
@@ -31,14 +29,13 @@
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-  border-radius: 12px 12px 0 0;
+  background-color: #f8f9fa;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.5rem;
   color: #333;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -48,18 +45,18 @@
   font-size: 24px;
   cursor: pointer;
   color: #666;
-  padding: 4px;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  padding: 0;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  border-radius: 50%;
+  transition: background-color 0.2s;
 }
 
 .close-button:hover {
-  background: #e0e0e0;
+  background-color: #f0f0f0;
   color: #333;
 }
 
@@ -79,117 +76,147 @@
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-weight: 500;
-  color: #555;
-  font-size: 0.9rem;
+  color: #333;
+}
+
+.required {
+  color: #dc3545;
 }
 
 .form-group input,
-.form-group textarea,
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .form-group input.error,
-.form-group textarea.error,
-.form-group select.error {
-  border-color: #f44336;
+.form-group select.error,
+.form-group textarea.error {
+  border-color: #dc3545;
+}
+
+.form-group input.error:focus,
+.form-group select.error:focus,
+.form-group textarea.error:focus {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 80px;
 }
 
 .error-message {
-  color: #f44336;
-  font-size: 0.875rem;
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.submit-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+}
+
+.field-info {
+  color: #666;
+  font-size: 12px;
   margin-top: 4px;
   display: block;
 }
 
 .form-actions {
   display: flex;
-  gap: 12px;
   justify-content: flex-end;
-  margin-top: 24px;
+  gap: 12px;
+  margin-top: 30px;
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
 }
 
 .cancel-button,
-.save-button {
-  padding: 12px 24px;
+.submit-button {
+  padding: 10px 20px;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: 4px;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .cancel-button {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.cancel-button:hover {
-  background: #e0e0e0;
-}
-
-.save-button {
-  background: #4CAF50;
+  background-color: #6c757d;
   color: white;
 }
 
-.save-button:hover:not(:disabled) {
-  background: #45a049;
-  transform: translateY(-1px);
+.cancel-button:hover:not(:disabled) {
+  background-color: #5a6268;
 }
 
-.save-button:disabled {
-  background: #ccc;
+.submit-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.cancel-button:disabled,
+.submit-button:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.debug-info {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
 }
 
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.debug-info details {
+  cursor: pointer;
 }
 
-/* Mobile responsiveness */
+.debug-info summary {
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.debug-info pre {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;
@@ -213,7 +240,7 @@
   }
   
   .cancel-button,
-  .save-button {
+  .submit-button {
     width: 100%;
   }
 }

@@ -6,195 +6,307 @@ const TaskModal = ({ isOpen, onClose, onSave, task = null, users = [], existingT
     title: '',
     description: '',
     assignedUser: '',
-    priority: 'medium',
-    status: 'todo'
+    priority: 'Medium',
+    status: 'Todo'
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Reset form when modal opens/closes or task changes
   useEffect(() => {
-    if (task) {
-      setFormData({
-        title: task.title || '',
-        description: task.description || '',
-        assignedUser: task.assignedUser?._id || task.assignedUser || '',
-        priority: task.priority?.toLowerCase() || 'medium',
-        status: task.status?.toLowerCase().replace(' ', '-') || 'todo'
-      });
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        assignedUser: '',
-        priority: 'medium',
-        status: 'todo'
-      });
+    if (isOpen) {
+      if (task) {
+        // Editing existing task
+        setFormData({
+          title: task.title || '',
+          description: task.description || '',
+          assignedUser: task.assignedUser?._id || task.assignedUser || '',
+          priority: task.priority || 'Medium',
+          status: task.status || 'Todo'
+        });
+      } else {
+        // Creating new task
+        setFormData({
+          title: '',
+          description: '',
+          assignedUser: '',
+          priority: 'Medium',
+          status: 'Todo'
+        });
+      }
+      setErrors({});
     }
-    setErrors({});
   }, [task, isOpen]);
 
-  // Add this debugging version to your TaskForm component
+  const validateForm = () => {
+    const newErrors = {};
 
-const TaskForm = ({ onSave, onCancel, task }) => {
-  const [formData, setFormData] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
-    status: task?.status || 'Todo',
-    priority: task?.priority || 'Medium',
-    assignedUser: task?.assignedUser || '',
-    dueDate: task?.dueDate || ''
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    console.log('=== DEBUG: TaskForm handleSubmit ===');
-    console.log('Form data before processing:', formData);
-    
-    // Log each field
-    Object.keys(formData).forEach(key => {
-      console.log(`${key}:`, formData[key]);
-      console.log(`${key} type:`, typeof formData[key]);
-      console.log(`${key} length:`, formData[key]?.length);
-    });
-    
-    // Check for common issues
-    console.log('Title is empty:', !formData.title || formData.title.trim() === '');
-    console.log('Status value:', formData.status);
-    console.log('Priority value:', formData.priority);
-    
-    // Validate required fields
+    // Title validation
     if (!formData.title || formData.title.trim() === '') {
-      console.error('Validation failed: Title is required');
-      alert('Title is required!');
-      return;
+      newErrors.title = 'Task title is required';
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = 'Task title must be at least 3 characters long';
+    } else if (formData.title.trim().length > 100) {
+      newErrors.title = 'Task title must be less than 100 characters';
+    } else {
+      // Check for duplicate titles (exclude current task if editing)
+      const duplicateTask = existingTasks.find(existingTask => 
+        existingTask._id !== task?._id && 
+        existingTask.title.toLowerCase().trim() === formData.title.toLowerCase().trim()
+      );
+      
+      if (duplicateTask) {
+        newErrors.title = 'Task title must be unique';
+      }
     }
-    
-    // Validate status
+
+    // Description validation
+    if (!formData.description || formData.description.trim() === '') {
+      newErrors.description = 'Task description is required';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'Description should be at least 10 characters long';
+    } else if (formData.description.trim().length > 500) {
+      newErrors.description = 'Description must be less than 500 characters';
+    }
+
+    // Status validation
     const validStatuses = ['Todo', 'In Progress', 'Done'];
     if (!validStatuses.includes(formData.status)) {
-      console.error('Validation failed: Invalid status:', formData.status);
-      alert(`Invalid status: ${formData.status}. Must be one of: ${validStatuses.join(', ')}`);
-      return;
+      newErrors.status = 'Please select a valid status';
     }
-    
-    // Validate priority
+
+    // Priority validation
     const validPriorities = ['Low', 'Medium', 'High'];
     if (!validPriorities.includes(formData.priority)) {
-      console.error('Validation failed: Invalid priority:', formData.priority);
-      alert(`Invalid priority: ${formData.priority}. Must be one of: ${validPriorities.join(', ')}`);
-      return;
+      newErrors.priority = 'Please select a valid priority';
     }
-    
-    console.log('All validations passed, calling onSave with:', formData);
-    onSave(formData);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(`Field changed: ${name} = "${value}"`);
+    
+    console.log(`TaskModal - Field changed: ${name} = "${value}"`);
     
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="task-form">
-      <div className="form-group">
-        <label htmlFor="title">Title *</label>
-        <input
-          type="text"
-          id="title"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          required
-          placeholder="Enter task title"
-        />
-        <small>Current value: "{formData.title}" (length: {formData.title.length})</small>
-      </div>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    console.log('=== TaskModal Form Submission ===');
+    console.log('Form data:', formData);
+    console.log('Is editing:', !!task);
+    
+    // Validate form
+    if (!validateForm()) {
+      console.log('Form validation failed:', errors);
+      return;
+    }
 
-      <div className="form-group">
-        <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          placeholder="Enter task description"
-          rows="3"
-        />
-      </div>
+    setLoading(true);
+    
+    try {
+      // Prepare clean data for submission
+      const taskData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assignedUser: formData.assignedUser || null,
+        priority: formData.priority,
+        status: formData.status,
+        ...(task && { _id: task._id }) // Include ID if editing
+      };
 
-      <div className="form-group">
-        <label htmlFor="status">Status</label>
-        <select
-          id="status"
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-        >
-          <option value="Todo">Todo</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Done">Done</option>
-        </select>
-        <small>Current value: "{formData.status}"</small>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="priority">Priority</label>
-        <select
-          id="priority"
-          name="priority"
-          value={formData.priority}
-          onChange={handleChange}
-        >
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
-        <small>Current value: "{formData.priority}"</small>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="assignedUser">Assigned User</label>
-        <input
-          type="text"
-          id="assignedUser"
-          name="assignedUser"
-          value={formData.assignedUser}
-          onChange={handleChange}
-          placeholder="Enter user ID or leave empty"
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="dueDate">Due Date</label>
-        <input
-          type="datetime-local"
-          id="dueDate"
-          name="dueDate"
-          value={formData.dueDate}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="form-actions">
-        <button type="submit">Save Task</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
-      </div>
+      console.log('Submitting task data:', taskData);
       
-      {/* Debug info */}
-      <div style={{marginTop: '20px', padding: '10px', background: '#f0f0f0', fontSize: '12px'}}>
-        <strong>Debug Info:</strong>
-        <pre>{JSON.stringify(formData, null, 2)}</pre>
+      await onSave(taskData);
+      
+      // Close modal on success
+      onClose();
+      
+    } catch (error) {
+      console.error('Error saving task:', error);
+      setErrors({ submit: error.message || 'Failed to save task' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Don't render if modal is not open
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{task ? 'Edit Task' : 'Create New Task'}</h2>
+          <button 
+            className="close-button" 
+            onClick={onClose}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="task-form">
+          {errors.submit && (
+            <div className="error-message submit-error">
+              {errors.submit}
+            </div>
+          )}
+          
+          <div className="form-group">
+            <label htmlFor="title">
+              Task Title <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Enter task title"
+              className={errors.title ? 'error' : ''}
+              maxLength={100}
+              required
+            />
+            {errors.title && (
+              <div className="error-message">{errors.title}</div>
+            )}
+            <small className="field-info">
+              {formData.title.length}/100 characters
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">
+              Description <span className="required">*</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Enter task description"
+              className={errors.description ? 'error' : ''}
+              rows="4"
+              maxLength={500}
+              required
+            />
+            {errors.description && (
+              <div className="error-message">{errors.description}</div>
+            )}
+            <small className="field-info">
+              {formData.description.length}/500 characters
+            </small>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="status">
+                Status <span className="required">*</span>
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className={errors.status ? 'error' : ''}
+                required
+              >
+                <option value="Todo">Todo</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+              {errors.status && (
+                <div className="error-message">{errors.status}</div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="priority">
+                Priority <span className="required">*</span>
+              </label>
+              <select
+                id="priority"
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className={errors.priority ? 'error' : ''}
+                required
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+              {errors.priority && (
+                <div className="error-message">{errors.priority}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="assignedUser">Assigned User</label>
+            <select
+              id="assignedUser"
+              name="assignedUser"
+              value={formData.assignedUser}
+              onChange={handleChange}
+            >
+              <option value="">Select user (optional)</option>
+              {users.map(user => (
+                <option key={user._id} value={user._id}>
+                  {user.name} ({user.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-actions">
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="cancel-button"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="submit-button"
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : (task ? 'Update Task' : 'Create Task')}
+            </button>
+          </div>
+        </form>
+        
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="debug-info">
+            <details>
+              <summary>Debug Info</summary>
+              <pre>{JSON.stringify({ formData, errors, task }, null, 2)}</pre>
+            </details>
+          </div>
+        )}
       </div>
-    </form>
+    </div>
   );
 };
-
-}
 
 export default TaskModal;

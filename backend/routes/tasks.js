@@ -3,42 +3,53 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task'); // Make sure you have this model
 const auth = require('../middleware/auth'); // Authentication middleware
-
+const mongoose = require('mongoose');
 // Valid status values
 const VALID_STATUSES = ['Todo', 'In Progress', 'Done'];
 
-// Validation middleware for task data
+// REPLACE YOUR EXISTING validateTask FUNCTION WITH THIS IMPROVED ONE:
 const validateTask = (req, res, next) => {
   const { title, description, status, assignedUser, priority, dueDate } = req.body;
   
   console.log('Validating task data:', req.body);
   
+  const errors = [];
+  
   // Check required fields
-  if (!title || title.trim() === '') {
-    return res.status(400).json({ error: 'Title is required' });
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    errors.push('Title is required and must be a non-empty string');
   }
   
   // Validate status
   if (status && !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({ 
-      error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`,
-      received: status,
-      validStatuses: VALID_STATUSES
-    });
+    errors.push(`Invalid status "${status}". Must be one of: ${VALID_STATUSES.join(', ')}`);
   }
   
   // Validate priority if provided
   const validPriorities = ['Low', 'Medium', 'High'];
   if (priority && !validPriorities.includes(priority)) {
-    return res.status(400).json({ 
-      error: `Invalid priority. Must be one of: ${validPriorities.join(', ')}`,
-      received: priority
-    });
+    errors.push(`Invalid priority "${priority}". Must be one of: ${validPriorities.join(', ')}`);
   }
   
   // Validate due date if provided
-  if (dueDate && isNaN(Date.parse(dueDate))) {
-    return res.status(400).json({ error: 'Invalid due date format' });
+  if (dueDate && dueDate !== null && dueDate !== '' && isNaN(Date.parse(dueDate))) {
+    errors.push(`Invalid due date format: "${dueDate}". Use ISO date format (YYYY-MM-DD)`);
+  }
+  
+  // Validate assignedUser if provided
+  const isValidObjectId = /^[a-f\d]{24}$/i.test(assignedUser);
+if (assignedUser && !isValidObjectId) {
+  errors.push('assignedUser must be a valid MongoDB ObjectId');
+}
+
+  
+  // If there are validation errors, return them
+  if (errors.length > 0) {
+    return res.status(400).json({ 
+      error: 'Validation failed',
+      errors: errors,
+      received: req.body
+    });
   }
   
   next();
@@ -81,7 +92,7 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// POST /api/tasks - Create new task
+// REPLACE YOUR EXISTING POST ROUTE WITH THIS IMPROVED ONE:
 router.post('/', auth, validateTask, async (req, res) => {
   try {
     const { title, description, status, assignedUser, priority, dueDate } = req.body;
@@ -95,16 +106,16 @@ router.post('/', auth, validateTask, async (req, res) => {
     });
     
     const task = new Task({
-      title: title.trim(),
-      description: description?.trim() || '',
-      status: status || 'Todo',
-      assignedUser: assignedUser || null,
-      priority: priority || 'Medium',
-      dueDate: dueDate ? new Date(dueDate) : null,
-      createdBy: req.user.userId,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
+  title: title.trim(),
+  description: description?.trim() || '',
+  status: status || 'Todo',
+  assignedUser: assignedUser ? new mongoose.Types.ObjectId(assignedUser) : null,
+  priority: priority || 'Medium',
+  dueDate: dueDate ? new Date(dueDate) : null,
+  createdBy: req.user.userId,
+  createdAt: new Date(),
+  updatedAt: new Date()
+});
     
     const savedTask = await task.save();
     
@@ -124,8 +135,18 @@ router.post('/', auth, validateTask, async (req, res) => {
     
     if (error.name === 'ValidationError') {
       return res.status(400).json({ 
-        error: 'Validation error',
-        details: error.errors
+        error: 'Database validation error',
+        details: Object.keys(error.errors).map(key => ({
+          field: key,
+          message: error.errors[key].message
+        }))
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid data type',
+        details: `Invalid ${error.path}: ${error.value}`
       });
     }
     

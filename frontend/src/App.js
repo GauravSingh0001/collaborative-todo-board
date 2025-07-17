@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import TaskForm from './components/TaskForm'; // Import the TaskForm component
 import './App.css';
 
 // API Configuration
@@ -343,12 +344,8 @@ const KanbanBoard = () => {
   const [users, setUsers] = useState([]);
   const [activities, setActivities] = useState([]);
   const [showActivityLog, setShowActivityLog] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    priority: 'Medium',
-    assignedUser: user.id
-  });
+  const [showTaskForm, setShowTaskForm] = useState(false); // New state for TaskForm modal
+  const [editingTask, setEditingTask] = useState(null); // New state for editing task
   const [conflictData, setConflictData] = useState(null);
 
   const columns = ['Todo', 'In Progress', 'Done'];
@@ -437,110 +434,96 @@ const KanbanBoard = () => {
       console.error('Error fetching activities:', error);
     }
   };
-// Add this debugging version to your App.js
 
-const handleCreateTask = async (taskData) => {
-  console.log('=== DEBUG: handleCreateTask called ===');
-  console.log('Raw taskData received:', taskData);
-  
-  // Log each field individually
-  console.log('Title:', taskData.title);
-  console.log('Description:', taskData.description);
-  console.log('Status:', taskData.status);
-  console.log('Priority:', taskData.priority);
-  console.log('AssignedUser:', taskData.assignedUser);
-  console.log('DueDate:', taskData.dueDate);
-  
-  // Check for undefined/null values
-  console.log('Title is undefined:', taskData.title === undefined);
-  console.log('Title is null:', taskData.title === null);
-  console.log('Title is empty string:', taskData.title === '');
-  console.log('Title after trim:', taskData.title?.trim());
-  
-  try {
-    const token = localStorage.getItem('token');
-    console.log('Token exists:', !!token);
+  // Updated handleCreateTask to work with TaskForm
+  const handleCreateTask = async (taskData) => {
+    console.log('=== DEBUG: handleCreateTask called ===');
+    console.log('Raw taskData received:', taskData);
     
-    if (!token) {
-      console.error('No token found');
-      return;
-    }
-
-    // Prepare the request body
-    const requestBody = {
-      title: taskData.title?.trim() || '',
-      description: taskData.description?.trim() || '',
-      status: taskData.status || 'Todo',
-      priority: taskData.priority || 'Medium',
-      assignedUser: taskData.assignedUser || null,
-      dueDate: taskData.dueDate || null
-    };
-    
-    console.log('=== REQUEST BODY TO SEND ===');
-    console.log(JSON.stringify(requestBody, null, 2));
-    
-    // Check if title is empty after processing
-    if (!requestBody.title || requestBody.title.trim() === '') {
-      console.error('Title is empty after processing!');
-      alert('Title is required and cannot be empty');
-      return;
-    }
-    
-    console.log('Making POST request to:', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tasks`);
-    
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('=== SERVER ERROR RESPONSE ===');
-      console.error('Status:', response.status);
-      console.error('Error data:', errorData);
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token);
       
-      // Show detailed error message
-      if (errorData.error) {
-        alert(`Validation Error: ${errorData.error}`);
+      if (!token) {
+        console.error('No token found');
+        return;
       }
-      if (errorData.details) {
-        console.error('Validation details:', errorData.details);
-      }
-      if (errorData.validStatuses) {
-        console.error('Valid statuses:', errorData.validStatuses);
+
+      // Prepare the request body - map TaskForm data to API format
+      const requestBody = {
+        title: taskData.title?.trim() || '',
+        description: taskData.description?.trim() || '',
+        status: taskData.status || 'Todo',
+        priority: taskData.priority || 'Medium',
+        assignedUser: taskData.assignedUser || user.id, // Use current user if not specified
+        dueDate: taskData.dueDate || null
+      };
+      
+      console.log('=== REQUEST BODY TO SEND ===');
+      console.log(JSON.stringify(requestBody, null, 2));
+      
+      // Check if title is empty after processing
+      if (!requestBody.title || requestBody.title.trim() === '') {
+        console.error('Title is empty after processing!');
+        alert('Title is required and cannot be empty');
+        return;
       }
       
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('Making POST request to:', `${API_BASE_URL}/api/tasks`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('=== SERVER ERROR RESPONSE ===');
+        console.error('Status:', response.status);
+        console.error('Error data:', errorData);
+        
+        // Show detailed error message
+        if (errorData.error) {
+          alert(`Validation Error: ${errorData.error}`);
+        }
+        if (errorData.details) {
+          console.error('Validation details:', errorData.details);
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const newTask = await response.json();
+      console.log('=== SUCCESS ===');
+      console.log('New task created:', newTask);
+      
+      // Update tasks state
+      setTasks(prevTasks => [...prevTasks, newTask]);
+      
+      // Close the task form
+      setShowTaskForm(false);
+      
+      // Show success message
+      alert('Task created successfully!');
+      
+    } catch (error) {
+      console.error('=== ERROR IN handleCreateTask ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+      
+      // Show user-friendly error message
+      alert(`Failed to create task: ${error.message}`);
     }
+  };
 
-    const newTask = await response.json();
-    console.log('=== SUCCESS ===');
-    console.log('New task created:', newTask);
-    
-    // Update your tasks state
-    setTasks(prevTasks => [...prevTasks, newTask]);
-    
-    // Show success message
-    alert('Task created successfully!');
-    
-  } catch (error) {
-    console.error('=== ERROR IN handleCreateTask ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
-    
-    // Show user-friendly error message
-    alert(`Failed to create task: ${error.message}`);
-  }
-};
-
+  // Updated handleEditTask to work with TaskForm
   const handleEditTask = async (taskId, taskData) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
@@ -562,6 +545,13 @@ const handleCreateTask = async (taskData) => {
       } else if (!response.ok) {
         const error = await response.json();
         alert(error.error);
+      } else {
+        // Success - close the edit form
+        setEditingTask(null);
+        setShowTaskForm(false);
+        
+        // Refresh tasks
+        fetchTasks();
       }
     } catch (error) {
       console.error('Error updating task:', error);
@@ -636,6 +626,33 @@ const handleCreateTask = async (taskData) => {
     }
   };
 
+  // New handlers for TaskForm modal
+  const handleNewTask = () => {
+    setEditingTask(null);
+    setShowTaskForm(true);
+  };
+
+  const handleEditTaskFromCard = (task) => {
+    setEditingTask(task);
+    setShowTaskForm(true);
+  };
+
+  const handleCloseTaskForm = () => {
+    setShowTaskForm(false);
+    setEditingTask(null);
+  };
+
+  // Handle TaskForm save/update
+  const handleTaskFormSave = (taskData) => {
+    if (editingTask) {
+      // Update existing task
+      handleEditTask(editingTask._id, taskData);
+    } else {
+      // Create new task
+      handleCreateTask(taskData);
+    }
+  };
+
   const getTasksByStatus = (status) => {
     return tasks.filter(task => task.status === status);
   };
@@ -646,6 +663,9 @@ const handleCreateTask = async (taskData) => {
         <h1>Collaborative Todo Board</h1>
         <div className="header-actions">
           <span>Welcome, {user.username}!</span>
+          <button onClick={handleNewTask} className="create-task-btn">
+            Create New Task
+          </button>
           <button onClick={() => setShowActivityLog(!showActivityLog)}>
             {showActivityLog ? 'Hide' : 'Show'} Activity Log
           </button>
@@ -654,43 +674,6 @@ const handleCreateTask = async (taskData) => {
       </header>
 
       <div className="main-content">
-        <div className="create-task-form">
-          <h3>Create New Task</h3>
-          <form onSubmit={handleCreateTask}>
-            <div className="form-row">
-              <input
-                type="text"
-                placeholder="Task title"
-                value={newTask.title}
-                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                required
-              />
-              <select
-                value={newTask.priority}
-                onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-              <select
-                value={newTask.assignedUser}
-                onChange={(e) => setNewTask({...newTask, assignedUser: e.target.value})}
-              >
-                {users.map(u => (
-                  <option key={u._id} value={u._id}>{u.username}</option>
-                ))}
-              </select>
-            </div>
-            <textarea
-              placeholder="Task description"
-              value={newTask.description}
-              onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-            />
-            <button type="submit">Create Task</button>
-          </form>
-        </div>
-
         <div className="board-container">
           <div className="kanban-board">
             {columns.map(status => (
@@ -711,7 +694,7 @@ const handleCreateTask = async (taskData) => {
                     >
                       <TaskCard
                         task={task}
-                        onEdit={handleEditTask}
+                        onEdit={handleEditTaskFromCard}
                         onDelete={handleDeleteTask}
                         onSmartAssign={handleSmartAssign}
                         users={users}
@@ -743,6 +726,20 @@ const handleCreateTask = async (taskData) => {
         </div>
       </div>
 
+      {/* TaskForm Modal */}
+      {showTaskForm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <TaskForm
+              onSave={handleTaskFormSave}
+              onCancel={handleCloseTaskForm}
+              task={editingTask}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Conflict Resolution Modal */}
       {conflictData && (
         <div className="conflict-modal">
           <div className="modal-content">
